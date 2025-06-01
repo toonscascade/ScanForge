@@ -28,6 +28,7 @@ def print_banner():
 ║                                                                ║
 ║  {Fore.YELLOW}Port Scanner for Ethical Hackers and Network Engineers{Fore.CYAN}     ║
 ║  {Fore.YELLOW}Version 1.0.0{Fore.CYAN}                                           ║
+║  {Fore.MAGENTA}Made by toonscascade{Fore.CYAN}                                    ║
 ╚════════════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """
     print(banner)
