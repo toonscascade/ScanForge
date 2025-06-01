@@ -1,6 +1,15 @@
 # ScanForge
 
-Hi! I made this port scanner to help people learn about network security. It's my first project, so I tried to make it simple and easy to understand.
+ScanForge is a Python-based port scanner.
+
+## Legal Disclaimer and Educational Use
+
+**Important:** This tool is intended for **educational purposes only**.
+
+*   **Legal Warnings:** Unauthorized scanning of networks or systems is illegal and unethical in many jurisdictions. You are solely responsible for ensuring that you have explicit permission to scan any target.
+*   **Fair Use:** This tool should only be used in compliance with all applicable laws and regulations, and with the express consent of the system owner.
+
+By using this tool, you acknowledge and agree to these terms. The developers are not responsible for any misuse or damage caused by this tool.
 
 ## What is Port Scanning?
 

@@ -19,12 +19,11 @@ def print_banner():
     banner = f"""
 {Fore.CYAN}╔════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║  {Fore.GREEN}███████╗ ██████╗  █████╗ ███╗   ██╗{Fore.CYAN}███████╗{Fore.GREEN} ██████╗ ██████╗  ║
-║  {Fore.GREEN}██╔════╝██╔════╝ ██╔══██╗████╗  ██║{Fore.CYAN}██╔════╝{Fore.GREEN}██╔═══██╗██╔══██╗ ║
-║  {Fore.GREEN}███████╗██║  ███╗███████║██╔██╗ ██║{Fore.CYAN}█████╗  {Fore.GREEN}██║   ██║██████╔╝ ║
-║  {Fore.GREEN}╚════██║██║   ██║██╔══██║██║╚██╗██║{Fore.CYAN}██╔══╝  {Fore.GREEN}██║   ██║██╔══██╗ ║
-║  {Fore.GREEN}███████║╚██████╔╝██║  ██║██║ ╚████║{Fore.CYAN}██║     {Fore.GREEN}╚██████╔╝██║  ██║ ║
-║  {Fore.GREEN}╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝{Fore.CYAN}╚═╝      {Fore.GREEN}╚═════╝ ╚═╝  ╚═╝ ║
+║  {Fore.GREEN}█████ {Fore.GREEN}█████ {Fore.GREEN}█████ {Fore.GREEN}█   █ {Fore.BLUE}█████ {Fore.BLUE}█████ {Fore.GREEN}█████ {Fore.GREEN}█████ {Fore.GREEN}█████{Fore.CYAN}  ║
+║  {Fore.GREEN}█     {Fore.GREEN}█     {Fore.GREEN}█   █ {Fore.GREEN}██  █ {Fore.BLUE}█     {Fore.BLUE}█   █ {Fore.GREEN}█   █ {Fore.GREEN}█     {Fore.GREEN}█    {Fore.CYAN}  ║
+║  {Fore.GREEN}█████ {Fore.GREEN}█     {Fore.GREEN}█████ {Fore.GREEN}█ █ █ {Fore.BLUE}█████ {Fore.BLUE}█   █ {Fore.GREEN}█████ {Fore.GREEN}█ ███ {Fore.GREEN}█████{Fore.CYAN}  ║
+║  {Fore.GREEN}    █ {Fore.GREEN}█     {Fore.GREEN}█   █ {Fore.GREEN}█  ██ {Fore.BLUE}█     {Fore.BLUE}█   █ {Fore.GREEN}█  █  {Fore.GREEN}█   █ {Fore.GREEN}█    {Fore.CYAN}  ║
+║  {Fore.GREEN}█████ {Fore.GREEN}█████ {Fore.GREEN}█   █ {Fore.GREEN}█   █ {Fore.BLUE}█     {Fore.BLUE}█████ {Fore.GREEN}█   █ {Fore.GREEN}█████ {Fore.GREEN}█████{Fore.CYAN}  ║
 ║                                                                ║
 ║  {Fore.YELLOW}Port Scanner for Ethical Hackers and Network Engineers{Fore.CYAN}     ║
 ║  {Fore.YELLOW}Version 1.0.0{Fore.CYAN}                                           ║
