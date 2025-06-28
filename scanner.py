@@ -10,11 +10,12 @@ import argparse
 from colorama import init, Fore, Style
 from tqdm import tqdm
 import os
+import ipaddress
 
 # Initialize colorama
 init()
 
-def print_banner():
+def show_banner():
     """Print a fancy banner for the tool."""
     banner = f"""
 {Fore.CYAN}╔════════════════════════════════════════════════════════════╗
@@ -32,118 +33,127 @@ def print_banner():
 """
     print(banner)
 
-class ScanForge:
-    def __init__(self, target, start_port=1, end_port=1024, timeout=1, threads=100):
-        self.target = target
-        self.start_port = start_port
-        self.end_port = end_port
+def ip_range_to_list(ip1, ip2):
+    """Convert IP range to list of IPs."""
+    try:
+        start = ipaddress.IPv4Address(ip1)
+        end = ipaddress.IPv4Address(ip2)
+        return [str(ipaddress.IPv4Address(ip)) for ip in range(int(start), int(end) + 1)]
+    except ValueError as e:
+        print(f"{Fore.RED}[!] Error: Invalid IP range - {str(e)}{Style.RESET_ALL}")
+        sys.exit(1)
+
+class PortScanner:
+    def __init__(self, host, port_start=1, port_end=1024, timeout=1, num_threads=100):
+        self.host = host
+        self.port_start = port_start
+        self.port_end = port_end
         self.timeout = timeout
-        self.threads = threads
-        self.port_queue = Queue()
+        self.num_threads = num_threads
+        self.q = Queue()
         self.open_ports = []
         self.lock = threading.Lock()
-        self.total_ports = end_port - start_port + 1
-        self.scanned_ports = 0
-        self.progress_bar = None
+        self.total = port_end - port_start + 1
+        self.done = 0
+        self.bar = None
 
-    def get_service_name(self, port):
+    def port_service(self, port):
         """Get service name for a given port."""
         try:
-            service = socket.getservbyport(port)
-            return service
+            return socket.getservbyport(port)
         except:
             return "unknown"
 
-    def scan_port(self, port):
+    def check_port(self, port):
         """Scan a single port and return its status."""
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(self.timeout)
-            result = sock.connect_ex((self.target, port))
-            if result == 0:
-                service = self.get_service_name(port)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(self.timeout)
+            res = s.connect_ex((self.host, port))
+            if res == 0:
+                service = self.port_service(port)
                 with self.lock:
                     self.open_ports.append((port, service))
-                    if self.progress_bar:
-                        self.progress_bar.write(f"{Fore.GREEN}[+] Port {port} is open - {service}{Style.RESET_ALL}")
-            sock.close()
+                    if self.bar:
+                        self.bar.write(f"{Fore.GREEN}[+] {self.host} - Port {port} is open - {service}{Style.RESET_ALL}")
+            s.close()
         except socket.error:
             pass
         finally:
             with self.lock:
-                self.scanned_ports += 1
-                if self.progress_bar:
-                    self.progress_bar.update(1)
+                self.done += 1
+                if self.bar:
+                    self.bar.update(1)
 
-    def worker(self):
+    def thread_worker(self):
         """Worker thread function."""
         while True:
-            port = self.port_queue.get()
+            port = self.q.get()
             if port is None:
                 break
-            self.scan_port(port)
-            self.port_queue.task_done()
+            self.check_port(port)
+            self.q.task_done()
 
-    def start_scan(self):
+    def run(self):
         """Start the port scanning process."""
-        print(f"\n{Fore.CYAN}[*] Starting ScanForge port scanner{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Target: {self.target}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Port range: {self.start_port}-{self.end_port}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Threads: {self.threads}{Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}[*] Let's scan some ports!{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[*] Target: {self.host}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[*] Port range: {self.port_start}-{self.port_end}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[*] Threads: {self.num_threads}{Style.RESET_ALL}")
         print(f"{Fore.CYAN}[*] Timeout: {self.timeout}s{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Scan started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Style.RESET_ALL}\n")
+        print(f"{Fore.CYAN}[*] Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Style.RESET_ALL}\n")
 
         # Create progress bar
-        self.progress_bar = tqdm(
-            total=self.total_ports,
-            desc=f"{Fore.CYAN}Scanning ports{Style.RESET_ALL}",
+        self.bar = tqdm(
+            total=self.total,
+            desc=f"{Fore.CYAN}Scanning{Style.RESET_ALL}",
             unit="ports",
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]"
         )
 
         # Create and start worker threads
         threads = []
-        for _ in range(self.threads):
-            t = threading.Thread(target=self.worker)
+        for _ in range(self.num_threads):
+            t = threading.Thread(target=self.thread_worker)
             t.daemon = True
             t.start()
             threads.append(t)
 
         # Add ports to queue
-        for port in range(self.start_port, self.end_port + 1):
-            self.port_queue.put(port)
+        for port in range(self.port_start, self.port_end + 1):
+            self.q.put(port)
 
         # Wait for all ports to be scanned
-        self.port_queue.join()
+        self.q.join()
 
         # Stop worker threads
-        for _ in range(self.threads):
-            self.port_queue.put(None)
+        for _ in range(self.num_threads):
+            self.q.put(None)
         for t in threads:
             t.join()
 
         # Close progress bar
-        if self.progress_bar:
-            self.progress_bar.close()
+        if self.bar:
+            self.bar.close()
 
         # Print scan summary
-        print(f"\n{Fore.CYAN}[*] Scan completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Total ports scanned: {self.total_ports}{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}[*] Open ports found: {len(self.open_ports)}{Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}[*] Done at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[*] Ports scanned: {self.total}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[*] Open ports: {len(self.open_ports)}{Style.RESET_ALL}")
         
         if self.open_ports:
-            print(f"\n{Fore.CYAN}[*] Open ports and services:{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}[*] Here's what we found:{Style.RESET_ALL}")
             for port, service in sorted(self.open_ports):
-                print(f"{Fore.GREEN}[+] Port {port}: {service}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}[+] {self.host} - Port {port}: {service}{Style.RESET_ALL}")
         else:
-            print(f"\n{Fore.YELLOW}[!] No open ports found in the specified range{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}[!] No open ports found in that range{Style.RESET_ALL}")
 
-        print(f"\n{Fore.CYAN}[*] Scan completed successfully!{Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}[*] All done!{Style.RESET_ALL}")
 
 def main():
     # Clear screen and print banner
     os.system('cls' if os.name == 'nt' else 'clear')
-    print_banner()
+    show_banner()
 
     parser = argparse.ArgumentParser(
         description='ScanForge - A Python-based port scanner',
@@ -151,6 +161,7 @@ def main():
         epilog=f"""
 {Fore.YELLOW}Examples:{Style.RESET_ALL}
   Basic scan:              python portscanner.py example.com
+  IP range scan:          python portscanner.py 192.168.1.1-192.168.1.10
   Custom port range:       python portscanner.py example.com -p 1-1000
   Custom timeout:          python portscanner.py example.com -t 2
   Custom thread count:     python portscanner.py example.com -n 200
@@ -158,7 +169,7 @@ def main():
 {Fore.YELLOW}Note:{Style.RESET_ALL} Always ensure you have permission before scanning any system.
 """
     )
-    parser.add_argument('target', help='Target IP address or domain name')
+    parser.add_argument('target', help='Target IP address, domain name, or IP range (e.g., 192.168.1.1-192.168.1.10)')
     parser.add_argument('-p', '--ports', help='Port range (e.g., 1-1024)', default='1-1024')
     parser.add_argument('-t', '--timeout', type=float, help='Connection timeout in seconds', default=1)
     parser.add_argument('-n', '--threads', type=int, help='Number of threads', default=100)
@@ -166,23 +177,30 @@ def main():
     args = parser.parse_args()
 
     try:
-        # Resolve domain name to IP if needed
-        print(f"{Fore.CYAN}[*] Resolving target...{Style.RESET_ALL}")
-        target_ip = socket.gethostbyname(args.target)
-        print(f"{Fore.GREEN}[+] Target resolved to: {target_ip}{Style.RESET_ALL}")
+        # Check if target is an IP range
+        if '-' in args.target:
+            ip1, ip2 = args.target.split('-')
+            targets = ip_range_to_list(ip1, ip2)
+        else:
+            # Resolve domain name to IP if needed
+            print(f"{Fore.CYAN}[*] Resolving target...{Style.RESET_ALL}")
+            ip = socket.gethostbyname(args.target)
+            print(f"{Fore.GREEN}[+] Target resolved to: {ip}{Style.RESET_ALL}")
+            targets = [ip]
         
         # Parse port range
-        start_port, end_port = map(int, args.ports.split('-'))
+        port_start, port_end = map(int, args.ports.split('-'))
         
-        # Create and start scanner
-        scanner = ScanForge(
-            target=target_ip,
-            start_port=start_port,
-            end_port=end_port,
-            timeout=args.timeout,
-            threads=args.threads
-        )
-        scanner.start_scan()
+        # Scan each target
+        for tgt in targets:
+            scanner = PortScanner(
+                host=tgt,
+                port_start=port_start,
+                port_end=port_end,
+                timeout=args.timeout,
+                num_threads=args.threads
+            )
+            scanner.run()
 
     except socket.gaierror:
         print(f"\n{Fore.RED}[!] Error: Could not resolve hostname{Style.RESET_ALL}")
